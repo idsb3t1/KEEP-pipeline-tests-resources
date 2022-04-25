@@ -58,9 +58,6 @@ spec:
           ibmcloud login -a $API -r $REGION;
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
           source pre-build-check.sh;
-      volumeMounts:
-        - mountPath: /step-mount
-          name: task-volume
     - name: build-docker-image
       image: ibmcom/pipeline-base-image
       env:

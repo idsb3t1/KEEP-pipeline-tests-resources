@@ -94,7 +94,7 @@ spec:
           export GIT_COMMIT=$(git rev-parse HEAD);
           export REGISTRY_URL=$(ibmcloud cr info | sed "2q;d" | awk '{for(i=1;i<=NF;i++) if ($i=="Registry") print $(i+1)}');
           cd /workspace;
-          source build-docker-image.sh;
+          source <(curl -sSL "https://raw.githubusercontent.com/open-toolchain/commons/master/scripts/build_image_buildkit.sh")
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task

@@ -1,37 +1,36 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: build-task
 spec:
-  inputs:
-    params:
-      - name: task-pvc
-        description: the output pvc
-      - name: repository
-        description: the git repo
-      - name: revision
-        description: the revision
-        default: master
-      - name: apikey
-        description: the ibmcloud api key
-      - name: api
-        description: the ibmcloud api endpoint
-        default: "https://cloud.ibm.com"
-      - name: registryNamespace
-        description: the ibmcloud registry namespace
-      - name: imageName
-        description: the base image name
-        default: "hello-containers-tekton"
-      - name: registryRegion
-        description: the ibmcloud registry region        
+  params:
+    - name: task-pvc
+      description: the output pvc
+    - name: repository
+      description: the git repo
+    - name: revision
+      description: the revision
+      default: master
+    - name: apikey
+      description: the ibmcloud api key
+    - name: api
+      description: the ibmcloud api endpoint
+      default: "https://cloud.ibm.com"
+    - name: registryNamespace
+      description: the ibmcloud registry namespace
+    - name: imageName
+      description: the base image name
+      default: "hello-containers-tekton"
+    - name: registryRegion
+      description: the ibmcloud registry region        
   steps:
     - name: clone-repo
       image: alpine/git
       env:
         - name: REPOSITORY
-          value: $(inputs.params.repository)
+          value: $(params.repository)
         - name: REVISION
-          value: $(inputs.params.revision)
+          value: $(params.revision)
       command: ["/bin/sh", "-c"]
       args:
         - set -e -o pipefail;
@@ -41,17 +40,17 @@ spec:
       image: ibmcom/pipeline-base-image
       env:
         - name: IBMCLOUD_API_KEY
-          value: $(inputs.params.apikey)
+          value: $(params.apikey)
         - name: API
-          value: $(inputs.params.api)
+          value: $(params.api)
         - name: REGION
-          value: $(inputs.params.registryRegion)
+          value: $(params.registryRegion)
         - name: HOME
           value: "/root"
         - name: REGISTRY_NAMESPACE
-          value: $(inputs.params.registryNamespace)
+          value: $(params.registryNamespace)
         - name: IMAGE_NAME
-          value: $(inputs.params.imageName)
+          value: $(params.imageName)
       command: ["/bin/bash", "-c"]
       args:
         - set -e -o pipefail;
@@ -65,23 +64,23 @@ spec:
       image: ibmcom/pipeline-base-image
       env:
         - name: IBMCLOUD_API_KEY
-          value: $(inputs.params.apikey)
+          value: $(params.apikey)
         - name: API
-          value: $(inputs.params.api)
+          value: $(params.api)
         - name: REGION
-          value: $(inputs.params.registryRegion)
+          value: $(params.registryRegion)
         - name: HOME
           value: "/root"
         - name: REGISTRY_NAMESPACE
-          value: $(inputs.params.registryNamespace)
+          value: $(params.registryNamespace)
         - name: IMAGE_NAME
-          value: $(inputs.params.imageName)
+          value: $(params.imageName)
         - name: ARCHIVE_DIR
           value: "/artifacts"
         - name: BUILD_NUMBER
           value: "0"
         - name: GIT_BRANCH
-          value: $(inputs.params.revision)
+          value: $(params.revision)
       command: ["/bin/bash", "-c"]
       args:
         - set -e -o pipefail;
@@ -96,37 +95,36 @@ spec:
   volumes:
     - name: task-volume
       persistentVolumeClaim:
-        claimName: $(inputs.params.task-pvc)
+        claimName: $(params.task-pvc)
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: validate-task
 spec:
-  inputs:
-    params:
-      - name: task-pvc
-        description: the task pvc
-      - name: repository
-        description: the git repo
-      - name: revision
-        description: the revision
-        default: master
-      - name: apikey
-        description: the ibmcloud api key
-      - name: api
-        description: the ibmcloud api endpoint
-        default: "https://cloud.ibm.com"
-      - name: registryRegion
-        description: the ibmcloud registry region           
+  params:
+    - name: task-pvc
+      description: the task pvc
+    - name: repository
+      description: the git repo
+    - name: revision
+      description: the revision
+      default: master
+    - name: apikey
+      description: the ibmcloud api key
+    - name: api
+      description: the ibmcloud api endpoint
+      default: "https://cloud.ibm.com"
+    - name: registryRegion
+      description: the ibmcloud registry region           
   steps:
     - name: clone-repo
       image: alpine/git
       env:
         - name: REPOSITORY
-          value: $(inputs.params.repository)
+          value: $(params.repository)
         - name: REVISION
-          value: $(inputs.params.revision)
+          value: $(params.revision)
       command: ["/bin/sh", "-c"]
       args:
         - set -e -o pipefail;
@@ -136,13 +134,13 @@ spec:
       image: ibmcom/pipeline-base-image
       env:
         - name: IBMCLOUD_API_KEY
-          value: $(inputs.params.apikey)
+          value: $(params.apikey)
         - name: API
-          value: $(inputs.params.api)
+          value: $(params.api)
         - name: HOME
           value: "/root"
         - name: REGION
-          value: $(inputs.params.registryRegion)
+          value: $(params.registryRegion)
       command: ["/bin/bash", "-c"]
       args:
         - set -e -o pipefail;
@@ -156,43 +154,42 @@ spec:
   volumes:
     - name: task-volume
       persistentVolumeClaim:
-        claimName: $(inputs.params.task-pvc)
+        claimName: $(params.task-pvc)
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: deploy-task
 spec:
-  inputs:
-    params:
-      - name: task-pvc
-        description: the task pvc
-      - name: repository
-        description: the git repo
-      - name: revision
-        description: the revision
-        default: master
-      - name: apikey
-        description: the ibmcloud api key
-      - name: api
-        description: the ibmcloud api endpoint
-        default: "https://cloud.ibm.com"
-      - name: deployment-file
-        default: deployment.yml
-      - name: clusterNamespace
-        default: prod
-      - name: cluster
-        description: The IBM Cloud Kubernetes cluster name
-      - name: clusterRegion
-        description: The IBM Cloud Kubernetes cluster region
+  params:
+    - name: task-pvc
+      description: the task pvc
+    - name: repository
+      description: the git repo
+    - name: revision
+      description: the revision
+      default: master
+    - name: apikey
+      description: the ibmcloud api key
+    - name: api
+      description: the ibmcloud api endpoint
+      default: "https://cloud.ibm.com"
+    - name: deployment-file
+      default: deployment.yml
+    - name: clusterNamespace
+      default: prod
+    - name: cluster
+      description: The IBM Cloud Kubernetes cluster name
+    - name: clusterRegion
+      description: The IBM Cloud Kubernetes cluster region
   steps:
     - name: clone-repo
       image: alpine/git
       env:
         - name: REPOSITORY
-          value: $(inputs.params.repository)
+          value: $(params.repository)
         - name: REVISION
-          value: $(inputs.params.revision)
+          value: $(params.revision)
       command: ["/bin/sh", "-c"]
       args:
         - set -e -o pipefail;
@@ -202,19 +199,19 @@ spec:
       image: ibmcom/pipeline-base-image
       env:
         - name: IBMCLOUD_API_KEY
-          value: $(inputs.params.apikey)
+          value: $(params.apikey)
         - name: API
-          value: $(inputs.params.api)
+          value: $(params.api)
         - name: REGION
-          value: $(inputs.params.clusterRegion)
+          value: $(params.clusterRegion)
         - name: HOME
           value: "/root"
         - name: DEPLOYMENT_FILE
-          value: $(inputs.params.deployment-file)
+          value: $(params.deployment-file)
         - name: CLUSTER_NAMESPACE
-          value: $(inputs.params.clusterNamespace)
+          value: $(params.clusterNamespace)
         - name: PIPELINE_KUBERNETES_CLUSTER_NAME
-          value: $(inputs.params.cluster)
+          value: $(params.cluster)
       command: ["/bin/bash", "-c"]
       args:
         - set -e -o pipefail;
@@ -230,19 +227,19 @@ spec:
       image: ibmcom/pipeline-base-image
       env:
         - name: IBMCLOUD_API_KEY
-          value: $(inputs.params.apikey)
+          value: $(params.apikey)
         - name: API
-          value: $(inputs.params.api)
+          value: $(params.api)
         - name: REGION
-          value: $(inputs.params.clusterRegion)
+          value: $(params.clusterRegion)
         - name: HOME
           value: "/root"
         - name: DEPLOYMENT_FILE
-          value: $(inputs.params.deployment-file)
+          value: $(params.deployment-file)
         - name: CLUSTER_NAMESPACE
-          value: $(inputs.params.clusterNamespace)
+          value: $(params.clusterNamespace)
         - name: PIPELINE_KUBERNETES_CLUSTER_NAME
-          value: $(inputs.params.cluster)
+          value: $(params.cluster)
       command: ["/bin/bash", "-c"]
       args:
         - set -e -o pipefail;
@@ -257,5 +254,5 @@ spec:
   volumes:
     - name: task-volume
       persistentVolumeClaim:
-        claimName: $(inputs.params.task-pvc)
+        claimName: $(params.task-pvc)
       

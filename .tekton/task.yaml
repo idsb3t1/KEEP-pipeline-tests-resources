@@ -4,11 +4,13 @@ metadata:
   name: build-task
 spec:
   params:
+    - name: task-pvc
+      description: the output pvc
     - name: repository
       description: the git repo
     - name: revision
       description: the revision
-      default: hello-containers_master
+      default: master
     - name: apikey
       description: the ibmcloud api key
     - name: api
@@ -16,16 +18,11 @@ spec:
       default: "https://cloud.ibm.com"
     - name: registryNamespace
       description: the ibmcloud registry namespace
-      default: "idsb3t2-e2e-cd"
     - name: imageName
       description: the base image name
       default: "hello-containers-tekton"
     - name: registryRegion
-      description: the ibmcloud registry region
-      default: "us-south"
-  workspaces:
-  - name: task-pvc
-    mountPath: /artifacts
+      description: the ibmcloud registry region        
   steps:
     - name: clone-repo
       image: alpine/git
@@ -38,7 +35,7 @@ spec:
       args:
         - set -e -o pipefail;
           echo "Cloning $REPOSITORY";
-          cd /workspace && git clone -q -b $REVISION $REPOSITORY .;
+          git clone -q -b $REVISION $REPOSITORY .;
     - name: pre-build-check
       image: ibmcom/pipeline-base-image
       env:
@@ -59,12 +56,10 @@ spec:
         - set -e -o pipefail;
           ibmcloud login -a $API -r $REGION;
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
-          echo "=============";
-          cd /artifacts;
-          ls -a;
-          echo "=============";
-          cd /workspace;
           source pre-build-check.sh;
+      volumeMounts:
+        - mountPath: /step-mount
+          name: task-volume
     - name: build-docker-image
       image: ibmcom/pipeline-base-image
       env:
@@ -93,8 +88,14 @@ spec:
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
           export GIT_COMMIT=$(git rev-parse HEAD);
           export REGISTRY_URL=$(ibmcloud cr info | sed "2q;d" | awk '{for(i=1;i<=NF;i++) if ($i=="Registry") print $(i+1)}');
-          cd /workspace;
           source build-docker-image.sh;
+      volumeMounts:
+        - mountPath: /artifacts
+          name: task-volume
+  volumes:
+    - name: task-volume
+      persistentVolumeClaim:
+        claimName: $(params.task-pvc)
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -102,22 +103,20 @@ metadata:
   name: validate-task
 spec:
   params:
+    - name: task-pvc
+      description: the task pvc
     - name: repository
       description: the git repo
     - name: revision
       description: the revision
-      default: hello-containers_master
+      default: master
     - name: apikey
       description: the ibmcloud api key
     - name: api
       description: the ibmcloud api endpoint
       default: "https://cloud.ibm.com"
     - name: registryRegion
-      description: the ibmcloud registry region
-      default: "us-south"
-  workspaces:
-  - name: task-pvc
-    mountPath: /artifacts
+      description: the ibmcloud registry region           
   steps:
     - name: clone-repo
       image: alpine/git
@@ -130,7 +129,7 @@ spec:
       args:
         - set -e -o pipefail;
           echo "Cloning $REPOSITORY";
-          cd /workspace && git clone -q -b $REVISION $REPOSITORY .;
+          git clone -q -b $REVISION $REPOSITORY .;
     - name: check-vulnerabilities
       image: ibmcom/pipeline-base-image
       env:
@@ -147,21 +146,29 @@ spec:
         - set -e -o pipefail;
           ibmcloud login -a $API -r $REGION;
           while read line; do export $line; done < /artifacts/build.properties;
-          cd /workspace;
           cp /artifacts/build.properties .;
           source check-vulnerabilities.sh || true;
+      volumeMounts:
+        - mountPath: /artifacts
+          name: task-volume
+  volumes:
+    - name: task-volume
+      persistentVolumeClaim:
+        claimName: $(params.task-pvc)
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: deploy-task
 spec:
   params:
+    - name: task-pvc
+      description: the task pvc
     - name: repository
       description: the git repo
     - name: revision
       description: the revision
-      default: hello-containers_master
+      default: master
     - name: apikey
       description: the ibmcloud api key
     - name: api
@@ -173,13 +180,8 @@ spec:
       default: prod
     - name: cluster
       description: The IBM Cloud Kubernetes cluster name
-      default: "keep-e2e-tests"
     - name: clusterRegion
       description: The IBM Cloud Kubernetes cluster region
-      default: "us-south"
-  workspaces:
-  - name: task-pvc
-    mountPath: /artifacts
   steps:
     - name: clone-repo
       image: alpine/git
@@ -192,7 +194,7 @@ spec:
       args:
         - set -e -o pipefail;
           echo "Cloning $REPOSITORY";
-          cd /workspace && git clone -q -b $REVISION $REPOSITORY .;
+          git clone -q -b $REVISION $REPOSITORY .;
     - name: pre-deploy-check
       image: ibmcom/pipeline-base-image
       env:
@@ -216,9 +218,11 @@ spec:
           ibmcloud login -a $API -r $REGION;
           $(ibmcloud ks cluster config --cluster "${PIPELINE_KUBERNETES_CLUSTER_NAME}" --export);
           while read line; do export $line; done < /artifacts/build.properties;
-          cd /workspace;
           cp /artifacts/build.properties .;
           source pre-deploy-check.sh;
+      volumeMounts:
+        - mountPath: /artifacts
+          name: task-volume
     - name: deploy-to-kubernetes
       image: ibmcom/pipeline-base-image
       env:
@@ -242,7 +246,13 @@ spec:
           ibmcloud login -a $API -r $REGION;
           $(ibmcloud ks cluster config --cluster "${PIPELINE_KUBERNETES_CLUSTER_NAME}" --export);
           while read line; do export $line; done < /artifacts/build.properties;
-          cd /workspace;
           cp /artifacts/build.properties .;
           source deploy-to-kubernetes.sh;
+      volumeMounts:
+        - mountPath: /artifacts
+          name: task-volume
+  volumes:
+    - name: task-volume
+      persistentVolumeClaim:
+        claimName: $(params.task-pvc)
       

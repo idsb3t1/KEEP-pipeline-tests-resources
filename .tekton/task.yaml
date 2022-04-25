@@ -16,11 +16,13 @@ spec:
       default: "https://cloud.ibm.com"
     - name: registryNamespace
       description: the ibmcloud registry namespace
+      default: "idsb3t2-e2e-cd"
     - name: imageName
       description: the base image name
       default: "hello-containers-tekton"
     - name: registryRegion
       description: the ibmcloud registry region
+      default: "us-south"
   workspaces:
   - name: task-pvc
     mountPath: /artifacts
@@ -57,8 +59,11 @@ spec:
         - set -e -o pipefail;
           ibmcloud login -a $API -r $REGION;
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
+          echo "============="
+          cd /artifacts;
+          ls -a
+          echo "============="
           cd /workspace;
-          ls -a;
           source pre-build-check.sh;
     - name: build-docker-image
       image: ibmcom/pipeline-base-image
@@ -88,6 +93,7 @@ spec:
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
           export GIT_COMMIT=$(git rev-parse HEAD);
           export REGISTRY_URL=$(ibmcloud cr info | sed "2q;d" | awk '{for(i=1;i<=NF;i++) if ($i=="Registry") print $(i+1)}');
+          cd /workspace;
           source build-docker-image.sh;
 ---
 apiVersion: tekton.dev/v1beta1
@@ -108,6 +114,7 @@ spec:
       default: "https://cloud.ibm.com"
     - name: registryRegion
       description: the ibmcloud registry region
+      default: "us-south"
   workspaces:
   - name: task-pvc
     mountPath: /artifacts
@@ -166,8 +173,10 @@ spec:
       default: prod
     - name: cluster
       description: The IBM Cloud Kubernetes cluster name
+      default: "keep-e2e-tests"
     - name: clusterRegion
       description: The IBM Cloud Kubernetes cluster region
+      default: "us-south"
   workspaces:
   - name: task-pvc
     mountPath: /artifacts
@@ -233,6 +242,7 @@ spec:
           ibmcloud login -a $API -r $REGION;
           $(ibmcloud ks cluster config --cluster "${PIPELINE_KUBERNETES_CLUSTER_NAME}" --export);
           while read line; do export $line; done < /artifacts/build.properties;
+          cd /workspace;
           cp /artifacts/build.properties .;
           source deploy-to-kubernetes.sh;
       

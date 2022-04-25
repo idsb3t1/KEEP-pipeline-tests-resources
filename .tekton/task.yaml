@@ -204,6 +204,7 @@ spec:
           ibmcloud login -a $API -r $REGION;
           $(ibmcloud ks cluster config --cluster "${PIPELINE_KUBERNETES_CLUSTER_NAME}" --export);
           while read line; do export $line; done < /artifacts/build.properties;
+          cd /workspace;
           cp /artifacts/build.properties .;
           source pre-deploy-check.sh;
     - name: deploy-to-kubernetes

@@ -59,10 +59,10 @@ spec:
         - set -e -o pipefail;
           ibmcloud login -a $API -r $REGION;
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
-          echo "============="
+          echo "=============";
           cd /artifacts;
-          ls -a
-          echo "============="
+          ls -a;
+          echo "=============";
           cd /workspace;
           source pre-build-check.sh;
     - name: build-docker-image

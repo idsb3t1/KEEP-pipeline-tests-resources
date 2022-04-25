@@ -4,8 +4,6 @@ metadata:
   name: build-task
 spec:
   params:
-    - name: task-pvc
-      description: the output pvc
     - name: repository
       description: the git repo
     - name: revision
@@ -22,7 +20,10 @@ spec:
       description: the base image name
       default: "hello-containers-tekton"
     - name: registryRegion
-      description: the ibmcloud registry region        
+      description: the ibmcloud registry region
+  workspaces:
+  - name: task-pvc
+    mountPath: /artifacts
   steps:
     - name: clone-repo
       image: alpine/git
@@ -89,13 +90,6 @@ spec:
           export GIT_COMMIT=$(git rev-parse HEAD);
           export REGISTRY_URL=$(ibmcloud cr info | sed "2q;d" | awk '{for(i=1;i<=NF;i++) if ($i=="Registry") print $(i+1)}');
           source build-docker-image.sh;
-      volumeMounts:
-        - mountPath: /artifacts
-          name: task-volume
-  volumes:
-    - name: task-volume
-      persistentVolumeClaim:
-        claimName: $(params.task-pvc)
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -103,8 +97,6 @@ metadata:
   name: validate-task
 spec:
   params:
-    - name: task-pvc
-      description: the task pvc
     - name: repository
       description: the git repo
     - name: revision
@@ -116,7 +108,10 @@ spec:
       description: the ibmcloud api endpoint
       default: "https://cloud.ibm.com"
     - name: registryRegion
-      description: the ibmcloud registry region           
+      description: the ibmcloud registry region
+  workspaces:
+  - name: task-pvc
+    mountPath: /artifacts
   steps:
     - name: clone-repo
       image: alpine/git
@@ -148,13 +143,6 @@ spec:
           while read line; do export $line; done < /artifacts/build.properties;
           cp /artifacts/build.properties .;
           source check-vulnerabilities.sh || true;
-      volumeMounts:
-        - mountPath: /artifacts
-          name: task-volume
-  volumes:
-    - name: task-volume
-      persistentVolumeClaim:
-        claimName: $(params.task-pvc)
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -162,8 +150,6 @@ metadata:
   name: deploy-task
 spec:
   params:
-    - name: task-pvc
-      description: the task pvc
     - name: repository
       description: the git repo
     - name: revision
@@ -182,6 +168,9 @@ spec:
       description: The IBM Cloud Kubernetes cluster name
     - name: clusterRegion
       description: The IBM Cloud Kubernetes cluster region
+  workspaces:
+  - name: task-pvc
+    mountPath: /artifacts
   steps:
     - name: clone-repo
       image: alpine/git
@@ -220,9 +209,6 @@ spec:
           while read line; do export $line; done < /artifacts/build.properties;
           cp /artifacts/build.properties .;
           source pre-deploy-check.sh;
-      volumeMounts:
-        - mountPath: /artifacts
-          name: task-volume
     - name: deploy-to-kubernetes
       image: ibmcom/pipeline-base-image
       env:
@@ -248,11 +234,4 @@ spec:
           while read line; do export $line; done < /artifacts/build.properties;
           cp /artifacts/build.properties .;
           source deploy-to-kubernetes.sh;
-      volumeMounts:
-        - mountPath: /artifacts
-          name: task-volume
-  volumes:
-    - name: task-volume
-      persistentVolumeClaim:
-        claimName: $(params.task-pvc)
       

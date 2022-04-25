@@ -57,6 +57,7 @@ spec:
         - set -e -o pipefail;
           ibmcloud login -a $API -r $REGION;
           export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh";
+          cd /workspace;
           source pre-build-check.sh;
     - name: build-docker-image
       image: ibmcom/pipeline-base-image
@@ -204,7 +205,6 @@ spec:
           ibmcloud login -a $API -r $REGION;
           $(ibmcloud ks cluster config --cluster "${PIPELINE_KUBERNETES_CLUSTER_NAME}" --export);
           while read line; do export $line; done < /artifacts/build.properties;
-          cd /workspace;
           cp /artifacts/build.properties .;
           source pre-deploy-check.sh;
     - name: deploy-to-kubernetes

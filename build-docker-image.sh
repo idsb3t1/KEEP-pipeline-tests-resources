@@ -61,11 +61,7 @@ fi
 
 # Create the config.json file to make private container registry accessible
 export DOCKER_CONFIG=$(mktemp -d -t cr-config-XXXXXXXXXX)
-kubectl create secret --dry-run=true --output=json \
-  docker-registry registry-dockerconfig-secret \
-  --docker-server=${REGISTRY_URL} \
-  --docker-password=${API_KEY} \
-  --docker-username=iamapikey --docker-email=a@b.com | \
+kubectl create secret --dry-run=true --output=json docker-registry registry-dockerconfig-secret --docker-server=${REGISTRY_URL} --docker-password=${API_KEY} --docker-username=iamapikey --docker-email=a@b.com | \
 jq -r '.data[".dockerconfigjson"]' | base64 -d > ${DOCKER_CONFIG}/config.json
 
 echo "=========================================================="

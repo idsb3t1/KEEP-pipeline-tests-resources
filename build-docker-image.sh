@@ -19,6 +19,7 @@ echo "GIT_BRANCH=${GIT_BRANCH}"
 echo "GIT_COMMIT=${GIT_COMMIT}"
 echo "DOCKER_ROOT=${DOCKER_ROOT}"
 echo "DOCKER_FILE=${DOCKER_FILE}"
+echo "API_KEY=${IBMCLOUD_API_KEY}"
 
 # View build properties
 if [ -f build.properties ]; then 
@@ -63,7 +64,7 @@ export DOCKER_CONFIG=$(mktemp -d -t cr-config-XXXXXXXXXX)
 kubectl create secret --dry-run=true --output=json \
   docker-registry registry-dockerconfig-secret \
   --docker-server=${REGISTRY_URL} \
-  --docker-password=${IBM_CLOUD_API_KEY} \
+  --docker-password=${API_KEY} \
   --docker-username=iamapikey --docker-email=a@b.com | \
 jq -r '.data[".dockerconfigjson"]' | base64 -d > ${DOCKER_CONFIG}/config.json
 

@@ -48,6 +48,16 @@ if [ ! -z "${GIT_COMMIT}" ]; then
 fi
 IMAGE_TAG=${BUILD_NUMBER}-${IMAGE_TAG}
 if [ ! -z "${GIT_BRANCH}" ]; then IMAGE_TAG=${GIT_BRANCH}-${IMAGE_TAG} ; fi
+
+# Checking if buildctl is installed
+if which buildctl > /dev/null 2>&1; then
+  buildctl --version
+else 
+  echo "Installing Buildkit builctl"
+  curl -sL https://github.com/moby/buildkit/releases/download/v0.8.1/buildkit-v0.8.1.linux-amd64.tar.gz | tar -C /tmp -xz bin/buildctl && mv /tmp/bin/buildctl /usr/bin/buildctl && rmdir --ignore-fail-on-non-empty /tmp/bin
+  buildctl --version
+fi
+
 echo "=========================================================="
 echo -e "Building container image: ${IMAGE_NAME}:${IMAGE_TAG}"
 if [ -z "${DOCKER_ROOT}" ]; then DOCKER_ROOT=. ; fi
@@ -58,11 +68,24 @@ if [ -z "${DOCKER_FILE}" ]; then DOCKER_FILE=${DOCKER_ROOT}/Dockerfile ; fi
 # set +x
 # bx cr image-inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
 
-set -x
+# set -x
 # docker build -f ${DOCKERFILE} -t ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG} . \
 # --build-arg "RH_PASSWORD=${RH_PASSWORD}" --build-arg "RH_USERNAME=${RH_USERNAME}"
-docker build --tag "$REGISTRY_URL/$REGISTRY_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG" -f ${DOCKER_ROOT}/${DOCKER_FILE} ${DOCKER_ROOT}
-docker push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+# set +x
+# bx cr image-inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+
+# set -x
+# docker build --tag "$REGISTRY_URL/$REGISTRY_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG" -f ${DOCKER_ROOT}/${DOCKER_FILE} ${DOCKER_ROOT}
+# docker push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+# set +x
+# bx cr image-inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+
+set -x
+buildctl build \
+    --frontend dockerfile.v0 --opt filename=${DOCKER_FILE} --local dockerfile=${DOCKER_ROOT} \
+    --local context=${DOCKER_ROOT} \
+    --import-cache type=registry,ref=${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME} \
+    --output type=image,name="${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}",push=true
 set +x
 bx cr image-inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
 

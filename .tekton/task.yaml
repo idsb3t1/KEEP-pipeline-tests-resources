@@ -151,7 +151,7 @@ spec:
           cp /artifacts/build.properties .;
           source check-vulnerabilities.sh || true;
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: deploy-task

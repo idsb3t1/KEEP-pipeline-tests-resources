@@ -16,33 +16,11 @@ spec:
           name: sample-pipeline
 ---
 apiVersion: tekton.dev/v1beta1
-kind: TriggerBinding
-metadata:
-  name: pipeline-binding
----
-apiVersion: tekton.dev/v1beta1
-kind: TriggerBinding
-metadata:
-  name: manual-pipeline-binding
----
-apiVersion: tekton.dev/v1beta1
 kind: EventListener
 metadata:
   name: listener
 spec:
   triggers:
-    - binding:
-        name: pipeline-binding
-      template:
-        name: pipeline-template  
----
-apiVersion: tekton.dev/v1beta1
-kind: EventListener
-metadata:
-  name: manual-listener
-spec:
-  triggers:
-    - binding:
-        name: manual-pipeline-binding
+    - bindings: []
       template:
         name: pipeline-template
